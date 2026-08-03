@@ -52,3 +52,20 @@ def read_root():
 @app.get("/health")
 def read_root():
     return {"status": "ok"}
+
+
+from pydantic import BaseModel
+
+class Question(BaseModel):
+    text: str
+
+@app.post("/ask")
+def ask(question: Question):
+    return {"you_asked": question.text}
+
+import asyncio
+
+@app.get("/slow")
+async def slow_route():
+    await asyncio.sleep(2)   # simulates waiting, like a fake API call
+    return {"message": "done"}
