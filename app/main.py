@@ -1,71 +1,39 @@
-def add(a:int , b:int) -> int:
-
-    return a+b
-
-print (add(3,5))
-
-class Document:
-    def __init__(self, title: str, content: str):
-        self.title = title
-        self.content = content
-
-    def summary(self) -> str:
-        return f"{self.title}: {self.content[:20]}..."
-    
-doc = Document("Invoice", "This is a long invoice text")
-print(doc.summary())
-
-
-class Car:
-    def __init__(self, make:str, model:str):
-        self.model = model
-        self.make = make
-
-    def summary(self) -> str:
-        return f"{self.make}"
-
-car = Car("make by amg", "g-wagan")
-print(car.summary())
-
-
-
-class Document:
-    def __init__(self, title, content):
-        self.title = title
-        self.content = content
-
-    def word_count(self):
-        return len(self.content.split())
-    
-doc = Document("Invoice", "This is a long invoice text")
-print(doc.word_count())
-
-
 from fastapi import FastAPI
+from pydantic import BaseModel
+from groq import Groq
+import os
+from dotenv import load_dotenv
+from app.ingest import retrieve
 
+load_dotenv()
 app = FastAPI()
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+
+class Question(BaseModel):
+    text: str
+
 
 @app.get("/")
 def read_root():
     return {"message": "Hello World"}
 
+
 @app.get("/health")
-def read_root():
+def health_check():
     return {"status": "ok"}
 
 
-from pydantic import BaseModel
-
-class Question(BaseModel):
-    text: str
-
 @app.post("/ask")
 def ask(question: Question):
-    return {"you_asked": question.text}
+    chunks = retrieve(question.text, top_k=2)
+    context = "\n".join(chunks)
 
-import asyncio
+    prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
 
-@app.get("/slow")
-async def slow_route():
-    await asyncio.sleep(2)   # simulates waiting, like a fake API call
-    return {"message": "done"}
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return {"answer": response.choices[0].message.content}
