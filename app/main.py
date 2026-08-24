@@ -26,13 +26,18 @@ def health_check():
 
 @app.post("/ask")
 def ask(question: Question):
-    chunks = retrieve(question.text, top_k=2)
-    context = "\n".join(chunks)
+    if not question.text.strip():
+        return {"error": "Question cannot be empty"}
 
+    chunks = retrieve(question.text, top_k=2)
+    if not chunks:
+        return {"error": "No documents have been ingested yet"}
+
+    context = "\n".join(chunks)
     prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
 
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-20b",
         messages=[{"role": "user", "content": prompt}]
     )
 

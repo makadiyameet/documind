@@ -47,8 +47,4 @@ if __name__ == "__main__":
     chunks = chunk_text(text, chunk_size=20)
     vectors = embed_chunks(chunks)
     store_chunks(chunks, vectors)
-
-    results = retrieve("what does this say about having a good day")
-    for r in results:
-        print(r)
-        print("---")
+    print("stored", len(chunks), "chunks")
