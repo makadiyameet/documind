@@ -26,7 +26,7 @@ You can run a simple FastAPI server locally that takes a question, sends it to a
 - Learned Python fundamentals (variables, functions, classes) via JS comparisons.
 - Built FastAPI routes (`/`, `/health`), Pydantic models for request validation, and an async route.
 - Attempted Anthropic API — hit a billing wall (no free credits without a card).
-- Switched to Groq (free tier, no card required) as a stand-in LLM provider.
+- Switched to Groq (free tier, no card required) as a stand-in LLM provider — `llama-3.3-70b-versatile`.
 - Successfully called the LLM from Python and got a real response.
 
 ---
@@ -41,7 +41,7 @@ You can run a simple FastAPI server locally that takes a question, sends it to a
 
 # Milestone 2: Core RAG Pipeline
 
-**Status:** Done
+**Status:** In Progress (~halfway)
 **Started:**
 **Completed:**
 
@@ -55,16 +55,14 @@ You can run a simple FastAPI server locally that takes a question, sends it to a
 - [x] Vector storage — store chunks + embeddings in ChromaDB (`store_chunks`)
 - [x] Retrieval — given a query, find top-matching chunks (`retrieve`)
 - [x] Wire retrieval + generation into a real `/ask` FastAPI route
-- [x] Test end-to-end with a real (non-dummy) finance/compliance sample document
-- [x] Handle edge cases (empty query, no chunks stored yet, etc.)
+- [ ] Test end-to-end with a real (non-dummy) finance/compliance sample document
+- [ ] Handle edge cases (empty query, no chunks stored yet, etc.)
 
 ---
 
 ## Done When
 
 A user can POST a question to `/ask`, the app retrieves relevant chunks from a stored document, and returns an LLM-generated answer grounded in that context.
-
-**✅ Confirmed working** — tested with real compliance-style sample text (transaction reporting rules) and got a correctly grounded answer citing the exact policy section.
 
 ---
 
@@ -75,16 +73,10 @@ A user can POST a question to `/ask`, the app retrieves relevant chunks from a s
 - Wired everything into `app/main.py`'s `/ask` route: retrieve top chunks → build a grounded prompt → send to Groq LLM → return answer.
 - Verified retrieval correctly ranks the most semantically relevant chunk first, even with informal test text.
 - Cleaned up `main.py` — removed leftover practice code (standalone functions/classes from the Python fundamentals step), keeping only the real FastAPI app.
-- Replaced dummy sample text with realistic finance/compliance content (transaction reporting policy) and re-ran ingestion.
-- Added edge case handling to `/ask`: empty/whitespace-only questions return a clear error instead of hitting the LLM; empty retrieval results (no documents ingested) also return a clear error instead of crashing.
 
 ---
 
 ## Blockers / Questions
 
 - Port 8000 conflict when restarting uvicorn (`Address already in use`) — resolved via `lsof -ti:8000 | xargs kill -9`.
-- Groq deprecated `llama-3.3-70b-versatile` (404 `model_not_found`) — switched to `openai/gpt-oss-20b`, confirmed working.
-
----
-
-**Milestone 2 fully complete. Ready to start Milestone 3: React Frontend Polish.**
+- Still using dummy/placeholder sample text — need to test with a real finance/compliance-style document before considering this milestone fully done.

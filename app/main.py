@@ -1,14 +1,23 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 import os
 from dotenv import load_dotenv
 from app.ingest import retrieve
+from fastapi.responses import StreamingResponse
 
 load_dotenv()
 app = FastAPI()
-groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 class Question(BaseModel):
     text: str
@@ -36,9 +45,15 @@ def ask(question: Question):
     context = "\n".join(chunks)
     prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
 
-    response = groq_client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    def generate():
+        stream = groq_client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+        for chunk in stream:
+            token = chunk.choices[0].delta.content
+            if token:
+                yield token
 
-    return {"answer": response.choices[0].message.content}
+    return StreamingResponse(generate(), media_type="text/plain")
