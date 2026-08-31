@@ -6,6 +6,10 @@ import os
 from dotenv import load_dotenv
 from app.ingest import retrieve
 from fastapi.responses import StreamingResponse
+from fastapi import UploadFile, File
+from app.ingest import chunk_text, embed_chunks, store_chunks
+import json
+
 
 load_dotenv()
 app = FastAPI()
@@ -46,6 +50,9 @@ def ask(question: Question):
     prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
 
     def generate():
+        sources_json = json.dumps({"sources": chunks})
+        yield sources_json + "\n<<<END_SOURCES>>>\n"
+
         stream = groq_client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=[{"role": "user", "content": prompt}],
@@ -57,3 +64,14 @@ def ask(question: Question):
                 yield token
 
     return StreamingResponse(generate(), media_type="text/plain")
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    content = await file.read()
+    text = content.decode("utf-8")
+
+    chunks = chunk_text(text, chunk_size=200)
+    vectors = embed_chunks(chunks)
+    store_chunks(chunks, vectors)
+
+    return {"status": "uploaded", "chunks_stored": len(chunks)}
