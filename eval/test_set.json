@@ -1,0 +1,18 @@
+[
+  {
+    "question": "What happens if I do not report a transaction in time?",
+    "expected_answer": "Penalties under section 4.2 of the regulatory framework may apply."
+  },
+  {
+    "question": "What training must employees complete?",
+    "expected_answer": "Annual anti-money laundering training."
+  },
+  {
+    "question": "What is the reporting deadline for transactions?",
+    "expected_answer": "24 hours."
+  },
+  {
+    "question": "What should be done about suspicious activity?",
+    "expected_answer": "It must be flagged immediately using the internal reporting system."
+  }
+]
