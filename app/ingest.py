@@ -33,13 +33,13 @@ def store_chunks(chunks: list[str], embeddings: list[list[float]]):
         embeddings=embeddings
     )
 
-def retrieve(query: str, top_k: int = 2) -> list[str]:
+def retrieve(query: str, top_k: int = 2):
     query_vector = model.encode([query]).tolist()
     results = collection.query(
         query_embeddings=query_vector,
         n_results=top_k
     )
-    return results["documents"][0]
+    return results["documents"][0], results["distances"][0]
 
 
 if __name__ == "__main__":

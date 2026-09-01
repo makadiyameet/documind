@@ -42,9 +42,16 @@ def ask(question: Question):
     if not question.text.strip():
         return {"error": "Question cannot be empty"}
 
-    chunks = retrieve(question.text, top_k=2)
+    chunks, distances = retrieve(question.text, top_k=2)
     if not chunks:
         return {"error": "No documents have been ingested yet"}
+
+    if distances[0] > 1.5:
+        return {"error": "This question appears to be outside the scope of the uploaded documents."}
+
+    # chunks = retrieve(question.text, top_k=2)
+    # if not chunks:
+    #     return {"error": "No documents have been ingested yet"}
 
     context = "\n".join(chunks)
     prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
