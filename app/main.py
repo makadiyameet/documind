@@ -9,7 +9,9 @@ from fastapi.responses import StreamingResponse
 from fastapi import UploadFile, File
 from app.ingest import chunk_text, embed_chunks, store_chunks
 import json
-
+import time
+import json as json_module
+from datetime import datetime
 
 load_dotenv()
 app = FastAPI()
@@ -20,6 +22,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def log_request(question, answer, duration, num_chunks, distance):
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "question": question,
+        "answer_length": len(answer),
+        "duration_seconds": round(duration, 2),
+        "chunks_retrieved": num_chunks,
+        "best_distance": distance,
+    }
+    with open("logs.jsonl", "a") as f:
+        f.write(json_module.dumps(log_entry) + "\n")
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
@@ -39,6 +53,42 @@ def health_check():
 
 @app.post("/ask")
 def ask(question: Question):
+    if not question.text.strip():
+        return {"error": "Question cannot be empty"}
+
+    start_time = time.time()
+
+    chunks, distances = retrieve(question.text, top_k=2)
+    if not chunks:
+        return {"error": "No documents have been ingested yet"}
+
+    if distances[0] > 1.5:
+        return {"error": "This question appears to be outside the scope of the uploaded documents."}
+
+    context = "\n".join(chunks)
+    prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
+
+    def generate():
+        sources_json = json.dumps({"sources": chunks})
+        yield sources_json + "\n<<<END_SOURCES>>>\n"
+
+        stream = groq_client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+
+        full_answer = ""
+        for chunk in stream:
+            token = chunk.choices[0].delta.content
+            if token:
+                full_answer += token
+                yield token
+
+        duration = time.time() - start_time
+        log_request(question.text, full_answer, duration, len(chunks), distances[0])
+
+    return StreamingResponse(generate(), media_type="text/plain")
     if not question.text.strip():
         return {"error": "Question cannot be empty"}
 
