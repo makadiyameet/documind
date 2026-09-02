@@ -127,7 +127,7 @@ async def upload(file: UploadFile = File(...)):
     content = await file.read()
     text = content.decode("utf-8")
 
-    chunks = chunk_text(text, chunk_size=200)
+    chunks = chunk_text(text, chunk_size=20)
     vectors = embed_chunks(chunks)
     store_chunks(chunks, vectors)
 
