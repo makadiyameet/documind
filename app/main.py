@@ -23,7 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def log_request(question, answer, duration, num_chunks, distance):
+def log_request(question, answer, duration, num_chunks, distance, prompt_tokens, completion_tokens):
+    estimated_cost = (prompt_tokens * 0.00000010) + (completion_tokens * 0.00000010)
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "question": question,
@@ -31,6 +32,9 @@ def log_request(question, answer, duration, num_chunks, distance):
         "duration_seconds": round(duration, 2),
         "chunks_retrieved": num_chunks,
         "best_distance": distance,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "estimated_cost_usd": round(estimated_cost, 8),
     }
     with open("logs.jsonl", "a") as f:
         f.write(json_module.dumps(log_entry) + "\n")
@@ -49,7 +53,6 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-
 
 @app.post("/ask")
 def ask(question: Question):
@@ -79,46 +82,20 @@ def ask(question: Question):
         )
 
         full_answer = ""
+        prompt_tokens = 0
+        completion_tokens = 0
+
         for chunk in stream:
             token = chunk.choices[0].delta.content
             if token:
                 full_answer += token
                 yield token
+            if chunk.usage:
+                prompt_tokens = chunk.usage.prompt_tokens
+                completion_tokens = chunk.usage.completion_tokens
 
         duration = time.time() - start_time
-        log_request(question.text, full_answer, duration, len(chunks), distances[0])
-
-    return StreamingResponse(generate(), media_type="text/plain")
-    if not question.text.strip():
-        return {"error": "Question cannot be empty"}
-
-    chunks, distances = retrieve(question.text, top_k=2)
-    if not chunks:
-        return {"error": "No documents have been ingested yet"}
-
-    if distances[0] > 1.5:
-        return {"error": "This question appears to be outside the scope of the uploaded documents."}
-
-    # chunks = retrieve(question.text, top_k=2)
-    # if not chunks:
-    #     return {"error": "No documents have been ingested yet"}
-
-    context = "\n".join(chunks)
-    prompt = f"Answer the question using only this context:\n{context}\n\nQuestion: {question.text}"
-
-    def generate():
-        sources_json = json.dumps({"sources": chunks})
-        yield sources_json + "\n<<<END_SOURCES>>>\n"
-
-        stream = groq_client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[{"role": "user", "content": prompt}],
-            stream=True,
-        )
-        for chunk in stream:
-            token = chunk.choices[0].delta.content
-            if token:
-                yield token
+        log_request(question.text, full_answer, duration, len(chunks), distances[0], prompt_tokens, completion_tokens)
 
     return StreamingResponse(generate(), media_type="text/plain")
 
