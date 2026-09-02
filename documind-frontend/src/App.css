@@ -1,3 +1,13 @@
+.stats-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: #555;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .chat-container {
   max-width: 500px;
   margin: 40px auto;

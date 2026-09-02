@@ -54,6 +54,29 @@ def read_root():
 def health_check():
     return {"status": "ok"}
 
+@app.get("/stats")
+def get_stats():
+    try:
+        with open("logs.jsonl") as f:
+            lines = [json.loads(line) for line in f if line.strip()]
+    except FileNotFoundError:
+        return {"total_requests": 0}
+
+    if not lines:
+        return {"total_requests": 0}
+
+    total_requests = len(lines)
+    avg_duration = sum(l.get("duration_seconds", 0) for l in lines) / total_requests
+    total_cost = sum(l.get("estimated_cost_usd", 0) for l in lines)
+    avg_distance = sum(l.get("best_distance", 0) for l in lines) / total_requests
+
+    return {
+        "total_requests": total_requests,
+        "avg_duration_seconds": round(avg_duration, 2),
+        "total_estimated_cost_usd": round(total_cost, 6),
+        "avg_retrieval_distance": round(avg_distance, 3),
+    }
+
 @app.post("/ask")
 def ask(question: Question):
     if not question.text.strip():

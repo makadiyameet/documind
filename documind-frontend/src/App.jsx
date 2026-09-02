@@ -6,6 +6,14 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [stats, setStats] = useState(null);
+
+
+  const fetchStats = async () => {
+  const res = await fetch("http://127.0.0.1:8000/stats");
+  const data = await res.json();
+  setStats(data);
+};
 
 
   const handleUpload = async (e) => {
@@ -89,36 +97,49 @@ const handleAsk = async () => {
 };
 
   return (
-    <div className="chat-container">
-      <div className="upload-row">
-  <input type="file" accept=".txt" onChange={handleUpload} />
-  <span>{uploadStatus}</span>
-</div>
-      <div className="messages">
-        {messages.map((m, i) => (
-  <div key={i} className={`bubble ${m.role}`}>
-    {m.text}
-    {m.sources && m.sources.length > 0 && (
-      <div className="sources">
-        {m.sources.map((s, j) => (
-          <div key={j} className="source-item">📄 {s.slice(0, 60)}...</div>
-        ))}
+    <>
+      <div className="stats-row">
+        <button onClick={fetchStats}>Refresh Stats</button>
+        {stats && (
+          <div className="stats">
+            <span>Requests: {stats.total_requests}</span>
+            <span>Avg time: {stats.avg_duration_seconds}s</span>
+            <span>Total cost: ${stats.total_estimated_cost_usd}</span>
+            <span>Avg relevance: {stats.avg_retrieval_distance}</span>
+          </div>
+        )}
       </div>
-    )}
-  </div>
-))}
-        {loading && <div className="bubble bot">Thinking...</div>}
+      <div className="chat-container">
+        <div className="upload-row">
+          <input type="file" accept=".txt" onChange={handleUpload} />
+          <span>{uploadStatus}</span>
+        </div>
+        <div className="messages">
+          {messages.map((m, i) => (
+            <div key={i} className={`bubble ${m.role}`}>
+              {m.text}
+              {m.sources && m.sources.length > 0 && (
+                <div className="sources">
+                  {m.sources.map((s, j) => (
+                    <div key={j} className="source-item">📄 {s.slice(0, 60)}...</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {loading && <div className="bubble bot">Thinking...</div>}
+        </div>
+        <div className="input-row">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+            placeholder="Ask a question"
+          />
+          <button onClick={handleAsk}>Send</button>
+        </div>
       </div>
-      <div className="input-row">
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-          placeholder="Ask a question"
-        />
-        <button onClick={handleAsk}>Send</button>
-      </div>
-    </div>
+    </>
   );
 }
 
