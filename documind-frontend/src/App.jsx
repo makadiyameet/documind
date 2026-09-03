@@ -10,7 +10,7 @@ function App() {
 
 
   const fetchStats = async () => {
-  const res = await fetch("http://127.0.0.1:8000/stats");
+  const res = await fetch("https://documind-production-dc80.up.railway.app/stats");
   const data = await res.json();
   setStats(data);
 };
@@ -25,7 +25,7 @@ function App() {
 
   setUploadStatus("Uploading...");
 
-  const res = await fetch("http://127.0.0.1:8000/upload", {
+  const res = await fetch("https://documind-production-dc80.up.railway.app/upload", {
     method: "POST",
     body: formData,
   });
@@ -42,7 +42,7 @@ const handleAsk = async () => {
   setQuestion("");
   setLoading(true);
 
-  const res = await fetch("http://127.0.0.1:8000/ask", {
+  const res = await fetch("https://documind-production-dc80.up.railway.app/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: userMsg.text }),
